@@ -8,13 +8,6 @@
 import XCTest
 import EssentialFeed
 
-enum Result {
-    case success
-    case failure(Error)
-}
-
-
-
 final class CacheFeedUseCaseTests: XCTestCase {
     func test_init_doesNotMessageStoreUponCreation() {
         let (feedStore,_) = makeSUT()
@@ -23,7 +16,7 @@ final class CacheFeedUseCaseTests: XCTestCase {
     
     func test_save_requestCacheDeletion() {
         let (store,sut) = makeSUT()
-        sut.save( UniqueImageFeed().models) { _ in}
+        sut.save( uniqueImageFeed().models) { _ in}
         XCTAssertEqual(store.receivedMessages, [.deleteCacheFeed])
     }
     
@@ -31,7 +24,7 @@ final class CacheFeedUseCaseTests: XCTestCase {
     func test_save_requestsNewCacheInsertionWithTimestampOnSuccessfulDeletion() {
         let timestamp = Date()
         let (store,sut) = makeSUT(currentDate: {timestamp})
-        let (items,localItems) = UniqueImageFeed()
+        let (items,localItems) = uniqueImageFeed()
         sut.save( items ) { _ in}
         store.completeDeletionSuccessfully()
         XCTAssertEqual(store.receivedMessages, [.deleteCacheFeed,.insert(localItems, timestamp)])
@@ -67,7 +60,7 @@ final class CacheFeedUseCaseTests: XCTestCase {
         let store = FeedStoreSpy()
         var sut:LocalFeedLoader? = LocalFeedLoader(feedStore: store, currentDate: Date.init)
         var receivedResults = [LocalFeedLoader.SaveResult]()
-        sut?.save(UniqueImageFeed().models, completion: { error in
+        sut?.save(uniqueImageFeed().models, completion: { error in
             receivedResults.append(error)
         })
         sut = nil
@@ -79,7 +72,7 @@ final class CacheFeedUseCaseTests: XCTestCase {
         let store = FeedStoreSpy()
         var sut:LocalFeedLoader? = LocalFeedLoader(feedStore: store, currentDate: Date.init)
         var receivedResults = [LocalFeedLoader.SaveResult]()
-        sut?.save( UniqueImageFeed().models, completion: { error in
+        sut?.save( uniqueImageFeed().models, completion: { error in
             receivedResults.append(error)
         })
         store.completeDeletionSuccessfully()
@@ -103,8 +96,8 @@ final class CacheFeedUseCaseTests: XCTestCase {
                         line: UInt = #line) {
         var receivedError:Error?
         let exp = self.expectation(description: "wait for save to finish")
-        sut.save(UniqueImageFeed().models) { error in
-            receivedError = error
+        sut.save(uniqueImageFeed().models) { result in
+            if case let Result.failure(error) = result { receivedError = error }
             exp.fulfill()
         }
         action()

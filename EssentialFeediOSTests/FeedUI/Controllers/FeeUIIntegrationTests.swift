@@ -10,7 +10,21 @@ import UIKit
 import EssentialFeed
 import EssentialFeediOS
 
-final class FeedViewControllerTests:XCTestCase {
+final class FeeUIIntegrationTests:XCTestCase {
+    
+    func test_feedView_hasTitle() {
+        let (sut,_) = makeSUT()
+        
+        sut.loadViewIfNeeded()
+        
+        let bundle = Bundle(for: FeedViewController.self)
+        let localisedKey = "FEED_TITLE"
+        let localisedTitle = bundle.localizedString(forKey: localisedKey, value: nil, table: "Feed")
+        XCTAssertNotEqual(localisedKey, localisedTitle,"missing localised value for the key")
+        XCTAssertEqual(sut.title, localised("FEED_TITLE"))
+
+    }
+    
     
     
     func test_loadFeedActions_requestFeedFromLoader() {
@@ -119,7 +133,6 @@ final class FeedViewControllerTests:XCTestCase {
         let image1 = makeImage(url: URL(string: "any-url")!)
         let (sut,loader) = makeSUT()
         sut.simulateViewAppearing()
-
         
         loader.completeFeedLoading(with: [image0,image1], at: 0)
         
@@ -282,15 +295,76 @@ final class FeedViewControllerTests:XCTestCase {
         XCTAssertEqual(loader.cancelledImageURLs, [image0.url,image1.url],"Expected only two image urls to cancel")
     }
     
+    func test_feedImageView_doesNotLoadImageWhenViewIsNotVisibleAnymore() {
+        let (sut,loader) = makeSUT()
+        sut.simulateViewAppearing()
+        loader.completeFeedLoading(with: [makeImage()], at: 0)
+
+        let view = sut.simulateFeedImageViewNotVisible(at: 0)
+        loader.completeImageLoadingWith(anyImageData(), at: 0)
+        XCTAssertNil(view?.renderedImage, "Expected no rendered image since cell is not visible any more")
+        
+
+    }
+    
+    func test_loadfeedcompletion_dispatchesFromBackgroundToMainThread() {
+        let (sut,loader) = makeSUT()
+        sut.simulateViewAppearing()
+        let exp = expectation(description: "complete loading on main thread")
+        DispatchQueue.global().async {
+            loader.completeFeedLoading(at: 0)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1.0)
+    }
+    
+    func test_loadImageDataCompletion_dispatchesImagesFromBackgroundToMainthread() {
+        let (sut,loader) = makeSUT()
+        sut.simulateViewAppearing()
+        
+        loader.completeFeedLoading(with: [makeImage()], at: 0)
+        sut.simulateFeedImageNearVisible(at: 0)
+        let exp = expectation(description: "complete loading on main thread")
+        DispatchQueue.global().async {
+            loader.completeImageLoadingWith(self.anyImageData(), at: 0)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1.0)
+    }
+    
+    func test_loadFeedCompletion_rendersErrorMessageOnErrorUntilNextReload() {
+        let (sut, loader) = makeSUT()
+
+        sut.simulateViewAppearing()
+
+
+        XCTAssertEqual(sut.errorMessage, nil)
+        
+        loader.completeFeedLoadingWithError(at: 0)
+        
+        XCTAssertEqual(sut.errorMessage, localised("FEED_VIEW_CONNECTION_ERROR"))
+        
+        sut.simulateUserInitiatedFeedReload()
+        
+        XCTAssertEqual(sut.errorMessage, nil)
+
+    }
+    
+    
+    
     //MARK: - HELPERS
     
     private func makeSUT(file: StaticString = #filePath,
                          line: UInt = #line) -> (sut:FeedViewController,loader:LoaderSpy) {
         let loader = LoaderSpy()
-        let sut = FeedViewController(feedLoader: loader, imageLoader: loader)
+        let sut = FeedUIComposer.feedComposedWith(feedLoader: loader, imageLoader: loader)
         trackForMemoryLeaks(sut, file:file, line: line)
         trackForMemoryLeaks(loader,file: file,line: line)
         return (sut,loader)
+    }
+    
+    private func anyImageData() -> Data {
+        return UIImage.make(withColor: .red).pngData()!
     }
     
     private func makeImage(description:String? = nil,location:String? = nil, url:URL = URL(string:"any-url")!) -> FeedImage {
@@ -406,90 +480,9 @@ extension FeedImageCell {
     }
     
 }
-extension FeedViewController {
-    func simulateUserInitiatedFeedReload() {
-        refreshControl?.simulatePullToRefresh()
-    }
-    
-    var isShowingLoadingIndicator:Bool {
-        return refreshControl?.isRefreshing == true
-    }
-    
-    func replaceRefreshControlWithFakeForiOS17support() {
-        let fake = FakeRefreshControl()
-        refreshControl?.allTargets.forEach({ target in
-            refreshControl?.actions(forTarget: target, forControlEvent: .valueChanged)?.forEach({ action in
-                fake.addTarget(target, action: Selector(action), for: .valueChanged)
-            })
-        })
-        refreshControl = fake
-    }
-    
-    func numberOfRenderedImageviews() -> Int {
-        return tableView.numberOfRows(inSection: feedImagesSection)
-    }
-    
-    private var feedImagesSection:Int {
-        return 0
-    }
-    
-    func feedImageView(at index:Int) -> UITableViewCell?  {
-        let ds = tableView.dataSource
-        let indexPath = IndexPath(row: index, section: feedImagesSection)
-        return ds?.tableView(tableView, cellForRowAt: indexPath)
-    }
-    
-    @discardableResult
-    func simulateFeedImageViewVisible(at index:Int) -> FeedImageCell? {
-        return feedImageView(at: index) as? FeedImageCell
-    }
-    
-    func simulateFeedImageViewNotVisible(at index:Int) {
-        let view = simulateFeedImageViewVisible(at: index)
-        
-        let delegate = tableView.delegate
-        let indexPath = IndexPath(row: index, section: feedImagesSection)
-        delegate?.tableView?(tableView, didEndDisplaying: view!, forRowAt: indexPath )
-    }
-    
-    func simulateFeedImageNearVisible(at row:Int) {
-        let preDS = tableView.prefetchDataSource
-        let indexPath = IndexPath(row: row, section: feedImagesSection)
-        preDS?.tableView(tableView, prefetchRowsAt: [indexPath])
-    }
-    
-    func simulateImageViewNotNearVisible(at row:Int) {
-        simulateFeedImageNearVisible(at:row)
-        let preDS = tableView.prefetchDataSource
 
-        let indexPath = IndexPath(row: row, section: feedImagesSection)
 
-        preDS?.tableView?(tableView, cancelPrefetchingForRowsAt: [indexPath])
-    }
-    
-    func simulateViewAppearing() {
-        loadViewIfNeeded()
-        replaceRefreshControlWithFakeForiOS17support()
-        beginAppearanceTransition(true, animated: false)
-        endAppearanceTransition()
-    }
-    
 
-}
-
-private class FakeRefreshControl:UIRefreshControl {
-    private var _isRefreshing:Bool = false
-    
-    override var isRefreshing: Bool{
-        _isRefreshing
-    }
-    override func beginRefreshing() {
-        _isRefreshing = true
-    }
-    override func endRefreshing() {
-        _isRefreshing = false
-    }
-}
 
 extension UIRefreshControl {
     func simulatePullToRefresh() {

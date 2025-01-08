@@ -40,7 +40,7 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         
         expect(sut, toCompleteWithResult: .failure(RemoteFeedLoader.Error.connectivity)) {
             let clientError = NSError(domain: "Test", code: 0, userInfo: nil)
-            client.complete(with: clientError)
+            client.completeWith(error: clientError)
 
         }
     }
@@ -52,7 +52,7 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         errorCodes.enumerated().forEach { index,code in
             expect(sut, toCompleteWithResult: .failure(RemoteFeedLoader.Error.invalidData)) {
                 let json = makeItemsJSON([])
-                client.complete(withStatusCode:code, data: json,at: index)
+                client.completeWith(code:code, data: json,at: index)
             }
         }
         
@@ -63,14 +63,14 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         let (sut,client) = makeSUT()
         expect(sut, toCompleteWithResult: .failure(RemoteFeedLoader.Error.invalidData)) {
             let invalidData = Data("invalidJSON".utf8)
-            client.complete(withStatusCode: 200, data:invalidData)
+            client.completeWith(code: 200, data:invalidData)
         }
     }
     
     func test_load_deliversErrorOn200HTTPResponsewithEmptyJSONList() {
         let (sut,client) = makeSUT()
         expect(sut, toCompleteWithResult: .success([])) {
-            client.complete(withStatusCode: 200,data: makeItemsJSON([]))
+            client.completeWith(code: 200,data: makeItemsJSON([]))
         }
 
     }
@@ -82,7 +82,7 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         
         expect(sut, toCompleteWithResult: .success([feedItem1.model,feedItem2.model])) {
             let json = makeItemsJSON([feedItem1.json,feedItem2.json])
-            client.complete(withStatusCode: 200,data: json)
+            client.completeWith(code: 200,data: json)
         }
     }
     
@@ -95,7 +95,7 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         
         sut = nil
         
-        client.complete(withStatusCode: 200, data: makeItemsJSON([]))
+        client.completeWith(code: 200, data: makeItemsJSON([]))
         XCTAssertTrue(capturedResults.isEmpty)
     }
     
@@ -144,26 +144,7 @@ final class LoadFeedFromRemoteUseCaseTests: XCTestCase {
         let data = try! JSONSerialization.data(withJSONObject: json)
         return data
     }
-    
-    private class HTTPClientSpy:HTTPClient {
-        private var messages = [(url:URL,completion:(HTTPClient.Result)->Void)]()
-        var requestedURLs:[URL] {
-            return messages.map{$0.url}
-        }
-        func get(from url:URL,completion: @escaping (HTTPClient.Result) -> Void) {
-            messages.append((url:url,completion:completion))
-        }
-        
-        func complete(with error:Error, at index:Int = 0) {
-            messages[index].completion(.failure(error))
-        }
-        
-        func complete(withStatusCode code:Int,data:Data, at index:Int = 0) {
-            let response = HTTPURLResponse(url: requestedURLs[index], statusCode: code, httpVersion: nil, headerFields: nil)!
-            messages[index].completion(.success((data,response)))
-        }
-    }
-    
+
     
 
 }

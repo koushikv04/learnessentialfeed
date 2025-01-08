@@ -9,8 +9,8 @@ import Foundation
 import EssentialFeed
 
 class FeedStoreSpy:FeedStore {
+    
     var insertions = [(items:[LocalFeedImage], timestamp:Date)]()
-    typealias InsertCompletion = ((Error?) -> Void)
     
     var deleteCompletions = [DeleteCompletion]()
     var insertCompletions = [InsertCompletion]()
@@ -24,8 +24,8 @@ class FeedStoreSpy:FeedStore {
     
     var receivedMessages = [ReceivedMessage]()
     
-    func insert(_ cache:(feed:[LocalFeedImage], timestamp: Date), completion: @escaping InsertCompletion) {
-        receivedMessages.append(.insert(cache.feed, cache.timestamp))
+    func insert(_ feed: [LocalFeedImage], timestamp: Date, completion: @escaping InsertCompletion) {
+        receivedMessages.append(.insert(feed, timestamp))
         insertCompletions.append(completion)
     }
     
@@ -35,18 +35,18 @@ class FeedStoreSpy:FeedStore {
     }
     
     func completeDeletion(with error:Error, at index:Int = 0) {
-        deleteCompletions[index](error)
+        deleteCompletions[index](.failure(error))
     }
     
     func completeDeletionSuccessfully(at index:Int = 0) {
-        deleteCompletions[index](nil)
+        deleteCompletions[index](.success(()))
     }
     
     func completeInsertion(with error:Error, at index:Int = 0) {
-        insertCompletions[index](error)
+        insertCompletions[index](.failure(error))
     }
     func completeInsertionSuccessfully(at index:Int = 0) {
-        insertCompletions[index](nil)
+        insertCompletions[index](.success(()))
     }
     
     func retrieve(completion: @escaping RetrievalCompletion) {
@@ -59,10 +59,10 @@ class FeedStoreSpy:FeedStore {
     }
     
     func completeRetrievalWithEmptyCache(at index:Int = 0) {
-        retrievalCompletions[index](.success(.empty))
+        retrievalCompletions[index](.success(.none))
     }
     
     func completeRetrieval(with feed:[LocalFeedImage],timeStamp:Date,at index:Int = 0) {
-        retrievalCompletions[index](.success(.found(feed: feed, timestamp: timeStamp)))
+        retrievalCompletions[index](.success((feed: feed, timeStamp: timeStamp)))
     }
 } 

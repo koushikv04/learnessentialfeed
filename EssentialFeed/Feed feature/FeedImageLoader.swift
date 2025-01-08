@@ -4,7 +4,10 @@
 //
 //  Created by Kouv on 20/12/2024.
 //
-import UIKit
+
+public protocol FeedImageDataLoaderTask {
+    func cancel()
+}
 
 public protocol FeedImageLoader {
     typealias Result = (Swift.Result<Data,Error>)

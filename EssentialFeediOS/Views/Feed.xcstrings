@@ -1,0 +1,42 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "FEED_TITLE" : {
+      "comment" : "title for the feed view",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Feed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mi feed"
+          }
+        }
+      }
+    },
+    "FEED_VIEW_CONNECTION_ERROR" : {
+      "comment" : "message on connection error",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "couldn’t connect to a server"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo conectar a un servidor"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

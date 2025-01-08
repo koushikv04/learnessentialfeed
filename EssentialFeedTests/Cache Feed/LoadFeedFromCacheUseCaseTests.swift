@@ -38,9 +38,9 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let fixedCurrentDate = Date()
         let nonExpiredTimeStamp = fixedCurrentDate.minusFeedCacheMaxAge().adding(seconds:1)
         let (feedStore,sut) = makeSUT(currentDate: {fixedCurrentDate})
-        let feed = UniqueImageFeed()
+        let feed = uniqueImageFeed()
         expect(sut, toCompleteWith: .success(feed.models)) {
-            feedStore.completeRetrieval(with:feed.localItems, timeStamp:nonExpiredTimeStamp)
+            feedStore.completeRetrieval(with:feed.local, timeStamp:nonExpiredTimeStamp)
         }
     }
     
@@ -48,9 +48,9 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let fixedCurrentDate = Date()
         let expirationTimeStamp = fixedCurrentDate.minusFeedCacheMaxAge()
         let (feedStore,sut) = makeSUT(currentDate: {fixedCurrentDate})
-        let feed = UniqueImageFeed()
+        let feed = uniqueImageFeed()
         expect(sut, toCompleteWith: .success([])) {
-            feedStore.completeRetrieval(with:feed.localItems, timeStamp:expirationTimeStamp)
+            feedStore.completeRetrieval(with:feed.local, timeStamp:expirationTimeStamp)
         }
     }
     
@@ -58,9 +58,9 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let fixedCurrentDate = Date()
         let expiredTimeStamp = fixedCurrentDate.minusFeedCacheMaxAge().adding(seconds: -1)
         let (feedStore,sut) = makeSUT(currentDate: {fixedCurrentDate})
-        let feed = UniqueImageFeed()
+        let feed = uniqueImageFeed()
         expect(sut, toCompleteWith: .success([])) {
-            feedStore.completeRetrieval(with:feed.localItems, timeStamp:expiredTimeStamp)
+            feedStore.completeRetrieval(with:feed.local, timeStamp:expiredTimeStamp)
         }
     }
     
@@ -89,7 +89,7 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         sut.load { _ in
             
         }
-        store.completeRetrieval(with: UniqueImageFeed().localItems, timeStamp: nonExpiredTimeStamp)
+        store.completeRetrieval(with: uniqueImageFeed().local, timeStamp: nonExpiredTimeStamp)
         XCTAssertEqual(store.receivedMessages, [.retrieve])
     }
     
@@ -100,7 +100,7 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         sut.load { _ in
             
         }
-        store.completeRetrieval(with: UniqueImageFeed().localItems, timeStamp: expirationTimeStamp)
+        store.completeRetrieval(with: uniqueImageFeed().local, timeStamp: expirationTimeStamp)
         XCTAssertEqual(store.receivedMessages, [.retrieve])
     }
     
@@ -111,7 +111,7 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         sut.load { _ in
             
         }
-        store.completeRetrieval(with: UniqueImageFeed().localItems, timeStamp: expiredTimeStamp)
+        store.completeRetrieval(with: uniqueImageFeed().local, timeStamp: expiredTimeStamp)
         XCTAssertEqual(store.receivedMessages, [.retrieve])
     }
     

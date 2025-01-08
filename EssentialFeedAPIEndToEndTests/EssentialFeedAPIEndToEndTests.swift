@@ -23,17 +23,44 @@ final class EssentialFeedAPIEndToEndTests: XCTestCase {
         }
     }
     
+    func test_endToEndGetImageDataFromServer_matchesFixedAccountData() {
+        let result = getFeedImageResult()
+        switch result {
+        case let .success(data):
+            XCTAssertFalse(data.isEmpty,"Expected to get some image data ")
+        case let .failure(error):
+            XCTFail("should have successfully fetched image data but got \(error) instead")
+        default:
+            XCTFail("should have successfully fetched image data but got no result")
+        }
+        
+    }
+    
     //MARK: - Helpers
     func expectedImage(at index:Int) -> FeedImage {
         return FeedImage(id: id(at:index), description: description(at:index), location: location(at:index), url: imageURL(at:index))
     }
     
+    private func getFeedImageResult(file: StaticString = #filePath,
+                              line: UInt = #line) -> FeedImageLoader.Result? {
+        let testServerURL = feedTestServerURL.appendingPathComponent("/73A7F70C-75DA-4C2E-B5A3-EED40DC53AA6/image")
+        
+        let loader = RemoteFeedImageDataLoader(client: ephemeralClient())
+        trackForMemoryLeaks(loader,file: file,line: line)
+        var receivedResult:FeedImageLoader.Result?
+        let exp = expectation(description: "wait to fetch image")
+        _ = loader.loadImageData(url: testServerURL) { result in
+            receivedResult = result
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5.0)
+        return receivedResult
+    }
+    
     private func getFeedResult(file: StaticString = #filePath,
                                line: UInt = #line) -> FeedLoader.Result? {
-        let url = URL(string: "https://static1.squarespace.com/static/5891c5b8d1758ec68ef5dbc2/t/5c52cdd0b8a045df091d2fff/1548930512083/feed-case-study-test-api-feed.json")!
-        let client = URLSessionHTTPClient()
-        let loader = RemoteFeedLoader(url: url, client: client)
-        trackForMemoryLeaks(client, file: file, line: line)
+        
+        let loader = RemoteFeedLoader(url: feedTestServerURL, client: ephemeralClient())
         trackForMemoryLeaks(loader, file: file, line: line)
         var feedResult:FeedLoader.Result?
         let exp = self.expectation(description: "wait to fetch feed")
@@ -87,5 +114,16 @@ final class EssentialFeedAPIEndToEndTests: XCTestCase {
             return URL(string: "https://url-\(index+1).com")!
         }
     
+    private var feedTestServerURL: URL {
+            return URL(string: "https://essentialdeveloper.com/feed-case-study/test-api/feed")!
+        }
     
+    private func ephemeralClient(file: StaticString = #filePath,
+                                 line: UInt = #line) -> HTTPClient {
+        let config = URLSessionConfiguration.ephemeral
+        let urlSession = URLSession(configuration: config)
+        let client = URLSessionHTTPClient(session: urlSession)
+        trackForMemoryLeaks(client,file: file, line: line)
+        return client
+    }
 }

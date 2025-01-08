@@ -7,6 +7,7 @@
 import Foundation
 
 public class CodableFeedStore:FeedStore {
+    
 
     private struct Cache: Codable {
         var feed: [CodableFeedImage]
@@ -46,12 +47,12 @@ public class CodableFeedStore:FeedStore {
         let storeURL = self.storeURL
         queue.async {
             guard let data = try? Data(contentsOf: storeURL) else {
-                return completion(.success(.empty))
+                return completion(.success(.none))
             }
             do {
                 let decoder = JSONDecoder()
                 let cache = try decoder.decode(Cache.self, from: data)
-                completion(.success(.found(feed: cache.localFeed, timestamp: cache.timeStamp)))
+                completion(.success((feed:cache.localFeed,timeStamp:cache.timeStamp)))
             } catch {
                 completion(.failure(error))
             }
@@ -60,17 +61,17 @@ public class CodableFeedStore:FeedStore {
         
     }
     
-    public func insert(_ cache:(feed:[LocalFeedImage], timestamp: Date), completion: @escaping InsertCompletion) {
+    public func insert(_ feed:[LocalFeedImage], timestamp: Date, completion: @escaping InsertCompletion) {
         
         let storeURL = self.storeURL
         queue.async(flags: .barrier) {
             do {
                 let encoder = JSONEncoder()
-                let encoded = try! encoder.encode(Cache(feed: cache.feed.map(CodableFeedImage.init), timeStamp: cache.timestamp))
+                let encoded = try! encoder.encode(Cache(feed: feed.map(CodableFeedImage.init), timeStamp: timestamp))
                 try encoded.write(to: storeURL)
-                completion(nil)
+                completion(.success(()))
             } catch {
-                completion(error)
+                completion(.failure(error))
             }
         }
         
@@ -80,13 +81,13 @@ public class CodableFeedStore:FeedStore {
         let storeURL = self.storeURL
         queue.async(flags: .barrier) {
             guard FileManager.default.fileExists(atPath: storeURL.path) else {
-                return completion(nil)
+                return completion(.success(()))
             }
             do {
                 try FileManager.default.removeItem(at: storeURL)
-                completion(nil)
+                completion(.success(()))
             } catch {
-                completion(error)
+                completion(.failure(error))
             }
         }
        
