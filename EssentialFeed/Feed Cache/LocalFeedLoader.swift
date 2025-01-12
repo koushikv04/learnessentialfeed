@@ -11,12 +11,17 @@ import Foundation
 public final class LocalFeedLoader {
     private let store:FeedStore
     private let currentDate: () -> Date
-    public typealias SaveResult = Swift.Result<Void,Error>
     
     public init(feedStore:FeedStore, currentDate: @escaping () -> Date) {
         self.store = feedStore
         self.currentDate = currentDate
     }
+    
+}
+
+extension LocalFeedLoader:FeedCache {
+    
+    public typealias SaveResult = FeedCache.Result
     
     public func save(_ feed:[FeedImage],completion: @escaping (SaveResult) -> Void) {
         store.deleteCachedFeed { [weak self] deletionResult in

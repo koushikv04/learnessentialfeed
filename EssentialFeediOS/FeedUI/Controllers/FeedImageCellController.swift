@@ -8,17 +8,17 @@
 import UIKit
 import EssentialFeed
 
-protocol FeedImageCellControllerDelegate {
+public protocol FeedImageCellControllerDelegate {
     func didRequestImageData()
     func didCancelImageRequest()
 }
 
-final class FeedImageCellController:FeedImageView {
+public final class FeedImageCellController:FeedImageView {
     
     private var delegate:FeedImageCellControllerDelegate
     private  var cell:FeedImageCell?
     
-    init(delegate:FeedImageCellControllerDelegate) {
+    public init(delegate:FeedImageCellControllerDelegate) {
         self.delegate = delegate
     }
     
@@ -29,7 +29,7 @@ final class FeedImageCellController:FeedImageView {
     }
     
     
-    func display(_ model: FeedImageViewModel<UIImage>) {
+    public func display(_ model: FeedImageViewModel<UIImage>) {
         cell?.locationLabel.text = model.location
         cell?.descriptionLabel.text = model.description
         cell?.feedImageView.animatedImage(model.image)

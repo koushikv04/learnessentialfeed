@@ -61,7 +61,7 @@ public class CodableFeedStore:FeedStore {
         
     }
     
-    public func insert(_ feed:[LocalFeedImage], timestamp: Date, completion: @escaping InsertCompletion) {
+    public func insert(_ feed:[LocalFeedImage], timestamp: Date, completion: @escaping InsertionCompletion) {
         
         let storeURL = self.storeURL
         queue.async(flags: .barrier) {
@@ -77,7 +77,7 @@ public class CodableFeedStore:FeedStore {
         
     }
     
-    public func deleteCachedFeed(completion: @escaping DeleteCompletion) {
+    public func deleteCachedFeed(completion: @escaping DeletionCompletion) {
         let storeURL = self.storeURL
         queue.async(flags: .barrier) {
             guard FileManager.default.fileExists(atPath: storeURL.path) else {
